@@ -47,7 +47,11 @@
                             <thead>
                                 <tr>
                                     <th>EMP ID</th>
+                                    <th>Last Name</th>
+                                    <th>First Name</th>
+                                    <th>Full Name</th>
                                     <th>Name</th>
+                                    <th>Mobile No.</th>
                                     <th>Gender</th>
                                     <th>Position</th> 
                                     <th>Salary</th>
@@ -62,7 +66,11 @@
                                 ?>
                                 <tr>
                                     <td><?php echo $row["employee_id"]; ?></td>
+                                    <td><?php echo $row["lname"]; ?></td>
+                                    <td><?php echo $row["fname"]; ?></td>
+                                    <td><?php echo $row["middle_initial"]; ?></td>
                                     <td><?php echo $row["name"]; ?></td>
+                                    <td><?php echo $row["mobile_number"]; ?></td>
                                     <td><?php echo $row["gender"]; ?></td>
                                     <td><?php echo $row["department"]; ?></td>
                                     <td><?php echo $row["salary"]; ?></td>
