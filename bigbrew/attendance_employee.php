@@ -23,23 +23,63 @@ if (
         if (mysqli_num_rows($resultEmployee) > 0) {
             $rowEmployee = mysqli_fetch_assoc($resultEmployee);
             $employeeId = $rowEmployee['id'];
-
+    
             // Check if it's within the normal working hours
+            $morningStart = date('Y-m-d') . " 08:00:00"; 
+            $morningEnd = date('Y-m-d') . " 12:00:00";
             $afternoonStart = date('Y-m-d') . " 13:00:00";
             $afternoonEnd = date('Y-m-d') . " 17:00:00";
             $overtimeStart = date('Y-m-d') . " 17:00:00";
             $overtimeEnd = date('Y-m-d') . " 24:00:00";
-
+    
             $currentTime = strtotime($currentDateTime);
-
+    
             // Check if employee has a morning entry
             $sqlCheckMorning = "SELECT * FROM attendance WHERE name = '$employeeName' AND DATE(morning_time_in) = CURDATE()";
             $resultCheckMorning = mysqli_query($connection, $sqlCheckMorning);
-
+    
             if (!$resultCheckMorning) {
                 $response = "Error: " . mysqli_error($connection);
             } else {
-                if ($currentTime >= strtotime($afternoonStart) && $currentTime < strtotime($overtimeStart)) {
+                if ($currentTime >= strtotime($morningStart) && $currentTime < strtotime($morningEnd)) {
+                    // Employee is within morning shift
+                    if ($action === 'Time In') {
+                        if ($currentTime > strtotime(date('Y-m-d') . " 08:05:00")) {
+                            $status = '<span style="color: red;">Time In (Late)</span>';
+                        } else {
+                            $status = '<span style="color: green;">Time In</span>';
+                        }
+                        $sqlInsertMorning = "INSERT INTO attendance (name, morning_time_in, status) VALUES ('$employeeName', '$currentDateTime', '$status')";
+    
+                        if (mysqli_query($connection, $sqlInsertMorning)) {
+                            $response = "TIME - IN (Morning) " . date('g:i A', strtotime($currentDateTime)) . " ✔️ ";
+                        } else {
+                            $response = "Error inserting morning entry: " . mysqli_error($connection);
+                        }
+                    } else if ($action === 'Time Out') {
+                        // Find the latest morning entry for the employee
+                        $sqlLatestMorning = "SELECT * FROM attendance WHERE name = '$employeeName' AND morning_time_in IS NOT NULL ORDER BY morning_time_in DESC LIMIT 1";
+                        $resultLatestMorning = mysqli_query($connection, $sqlLatestMorning);
+    
+                        if (!$resultLatestMorning) {
+                            $response = "Error: " . mysqli_error($connection);
+                        } else {
+                            if (mysqli_num_rows($resultLatestMorning) > 0) {
+                                $rowLatestMorning = mysqli_fetch_assoc($resultLatestMorning);
+                                $morningId = $rowLatestMorning['id'];
+                                $sqlUpdateMorning = "UPDATE attendance SET morning_time_out = '$currentDateTime', morning_total_hours = TIMESTAMPDIFF(SECOND, morning_time_in, '$currentDateTime') / 3600, status = 'Time Out' WHERE id = $morningId";
+    
+                                if (mysqli_query($connection, $sqlUpdateMorning)) {
+                                    $response = "TIME - OUT (Morning) " . date('g:i A', strtotime($currentDateTime)) . " ✔️ ";
+                                } else {
+                                    $response = "Error updating morning entry: " . mysqli_error($connection);
+                                }
+                            } else {
+                                $response = "Cannot Time Out. No corresponding Time In.";
+                            }
+                        }
+                    }
+                } else if ($currentTime >= strtotime($afternoonStart) && $currentTime < strtotime($overtimeStart)) {
                     // Employee is within afternoon shift
                     if ($action === 'Time In') {
                         if ($currentTime > strtotime(date('Y-m-d') . " 13:05:00")) {
